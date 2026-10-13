@@ -78,3 +78,19 @@ def test_invalid_csv_critical_flag_is_rejected(tmp_path, capsys):
     assert "1 skipped" in capsys.readouterr().out
     with target.open(newline="", encoding="utf-8") as stream:
         assert list(csv.DictReader(stream)) == []
+
+
+def test_batch_skips_direct_identifier_row(tmp_path, capsys):
+    source = tmp_path / "with-identifier.csv"
+    target = tmp_path / "out.csv"
+    source.write_text(
+        "task_id,target_identifier,primary_metric\n"
+        "T1,MRN-994827,10\n"
+        "T2,SPEC-02,10\n", encoding="utf-8"
+    )
+    assert main(["batch", "-i", str(source), "-o", str(target)]) == 0
+    assert "1 skipped" in capsys.readouterr().out
+    with target.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    assert len(rows) == 1
+    assert rows[0]["task_id"] == "T2"
