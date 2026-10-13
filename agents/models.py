@@ -1,7 +1,7 @@
 """
 Pydantic v2 schemas and data definitions for Mtb Orchestrator Pro.
 Domain: Antimicrobial Stewardship & Microbiology
-Standard: CLSI M100 / EUCAST / CDC NHSN Guidelines
+Rules: illustrative thresholds, not validated clinical guidelines.
 """
 import datetime
 import math
