@@ -104,7 +104,7 @@ export function parseCsv(text) {
 }
 export function csvCell(value) {
   let s = String(value ?? "");
-  if (/^[\s\uFEFF]*[=+\-@]/.test(s)) s = "'" + s;
+  if (/^[\s\uFEFF]*[=+@]/.test(s) || (/^[\s\uFEFF]*-/.test(s) && !Number.isFinite(Number(s.trim())))) s = "'" + s;
   return '"' + s.replace(/"/g, '""') + '"';
 }
 export function toCsv(headers, rows) {
