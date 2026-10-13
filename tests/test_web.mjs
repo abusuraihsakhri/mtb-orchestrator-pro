@@ -45,5 +45,7 @@ test("CSV parser rejects invalid row sizes and unterminated quotes", () => {
 });
 test("CSV output quotes cells and protects formula injection", () => {
   assert.equal(csvCell('=HYPERLINK("https://example.com")'), "\"'=HYPERLINK(\"\"https://example.com\"\")\"");
+  assert.equal(csvCell("-2.5"), "\"-2.5\"");
+  assert.equal(csvCell("-HYPERLINK()"), "\"\'-HYPERLINK()\"");
   assert.match(toCsv(["task_id", "status"], [{ task_id: "A,1", status: "GOOD" }]), /"A,1","GOOD"/);
 });
