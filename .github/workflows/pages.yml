@@ -31,3 +31,29 @@ jobs:
           path: web
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify live page and JavaScript asset
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          python - <<'PY'
+          import os
+          import time
+          from urllib.request import urlopen
+
+          root = os.environ["PAGE_URL"].rstrip("/") + "/"
+          for attempt in range(12):
+              try:
+                  with urlopen(root, timeout=20) as response:
+                      page = response.read().decode("utf-8")
+                  with urlopen(root + "app.mjs", timeout=20) as response:
+                      script = response.read().decode("utf-8")
+                  assert "Local execution" in page
+                  assert "export function evaluate" in script
+                  print("Live Pages HTML and JavaScript verified at", root)
+                  break
+              except Exception:
+                  if attempt == 11:
+                      raise
+                  time.sleep(5)
+          PY

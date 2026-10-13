@@ -4,12 +4,24 @@ Command Line Interface for Mtb Orchestrator Pro.
 import argparse
 import csv
 import json
+import re
 import sys
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
 from agents.base import AuditLogger
 
 supervisor = SystemSupervisor(model_provider="mock")
+
+
+def _csv_safe_cell(value):
+    """Prevent spreadsheet formula evaluation without modifying negative numbers."""
+    if not isinstance(value, str):
+        return value
+    stripped = value.lstrip()
+    dangerous = stripped.startswith(("=", "+", "@"))
+    if stripped.startswith("-") and not re.fullmatch(r"-\d+(?:\.\d+)?(?:[eE][+-]?\d+)?", stripped):
+        dangerous = True
+    return "'" + value if dangerous else value
 
 
 def main(argv=None):
@@ -90,10 +102,10 @@ def main(argv=None):
 
         try:
             with open(args.input, mode="r", encoding="utf-8-sig") as f:
-                reader = csv.DictReader(f)
+                reader = csv.DictReader(f, strict=True)
                 fieldnames = list(reader.fieldnames or [])
                 rows = list(reader)
-        except (csv.Error, UnicodeDecodeError) as e:
+        except (csv.Error, UnicodeDecodeError, OSError) as e:
             print(f"Error: Failed to parse CSV file: {e}", file=sys.stderr)
             return 1
 
@@ -138,7 +150,7 @@ def main(argv=None):
             with open(args.output, mode="w", encoding="utf-8", newline="") as f:
                 writer = csv.DictWriter(f, fieldnames=out_fields)
                 writer.writeheader()
-                writer.writerows(out_rows)
+                writer.writerows({key: _csv_safe_cell(value) for key, value in row.items()} for row in out_rows)
         except (OSError, csv.Error) as e:
             print(f"Error: Failed to write CSV: {e}", file=sys.stderr)
             return 1

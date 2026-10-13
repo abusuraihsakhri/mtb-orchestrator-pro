@@ -51,3 +51,17 @@ def test_only_mock_adapter_is_implemented():
     assert "not clinical analysis" in LLMFactory.create("mock").invoke("status")
     with pytest.raises(ValueError):
         LLMFactory.create("openai")
+
+
+def test_cli_csv_export_escapes_formula_cells_but_keeps_negatives(tmp_path):
+    source = tmp_path / "formula.csv"
+    result = tmp_path / "result.csv"
+    source.write_text(
+        "task_id,target_identifier,primary_metric,secondary_metric,status_descriptor\n"
+        "=1+1,SPEC-01,-2.5,0,NOMINAL\n", encoding="utf-8"
+    )
+    assert main(["batch", "-i", str(source), "-o", str(result)]) == 0
+    with result.open(newline="", encoding="utf-8") as stream:
+        row = next(csv.DictReader(stream))
+    assert row["task_id"] == "'=1+1"
+    assert row["primary_metric"] == "-2.5"
