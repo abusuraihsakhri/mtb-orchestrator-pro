@@ -32,8 +32,8 @@ class Severity(str):
 class DomainKnowledgeRegistry:
     """Enterprise domain rules, guideline matrices, and evidence benchmarks."""
     SYSTEM_VERSION = "2.0.0-PRO-CLINICAL"
-    ZERO_PHI_COMPLIANCE = True
-    HIPAA_SAFE_HARBOR = "ACTIVE_ON_PREMISES"
+    ZERO_PHI_COMPLIANCE = False
+    HIPAA_SAFE_HARBOR = "NOT_VALIDATED"
 
     @staticmethod
     def audit_security_and_integrity(payload: Dict[str, Any]) -> List[str]:
@@ -165,9 +165,9 @@ class MTBCoordinatorPro:
         if "summary" in q or "status" in q:
             return f"MTB-Orchestrator Pro: Autonomous Molecular Tumor Board & Clinical Trial Matching Agent currently tracking {len(self.case_registry)} cases in local air-gapped memory."
         elif "guidelines" in q or "protocol" in q:
-            return "All sub-agents operate under validated consensus clinical algorithms and CAP/CLSI/NCCN/WHO standards."
+            return "The example sub-agents use unvalidated demonstration thresholds; no guideline concordance is established."
         else:
-            return f"MTB-Orchestrator Pro: Autonomous Molecular Tumor Board & Clinical Trial Matching Agent executive agent online. Continuous supervisory monitoring active across all domain parameters."
+            return f"MTB-Orchestrator Pro: Autonomous Molecular Tumor Board & Clinical Trial Matching Agent executive agent online. No continuous monitoring is implemented."
 
 
 coordinator = MTBCoordinatorPro()
