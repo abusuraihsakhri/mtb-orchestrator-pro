@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { evaluate, parseCsv, csvCell, toCsv } from "../web/app.mjs";
+import { evaluate, parseCsv, parseFlag, csvCell, toCsv } from "../web/app.mjs";
 
 const base = { task_id: "TASK-01", target_identifier: "SPECIMEN-01",
   primary_metric: 12, secondary_metric: 4, status_descriptor: "NOMINAL", is_critical_flag: false };
@@ -31,6 +31,8 @@ test("malformed numeric and identifier input is rejected", () => {
   assert.throws(() => evaluate({ ...base, task_id: "MRN-994827" }), /direct identifier/);
   assert.throws(() => evaluate({ ...base, target_identifier: "test@example.com" }), /direct identifier/);
   assert.throws(() => evaluate({ ...base, is_critical_flag: "false" }), /boolean/);
+  assert.throws(() => evaluate({ ...base, primary_metric: "0x10" }), /decimal/);
+  assert.throws(() => evaluate({ ...base, primary_metric: "   " }), /decimal/);
 });
 test("CSV parser handles CRLF, BOM and quoted fields", () => {
   const result = parseCsv('\uFEFFtask_id,target_identifier,primary_metric,status_descriptor\r\n"CASE,1",SPEC-1,10,"NOMINAL"\r\n');
@@ -48,4 +50,10 @@ test("CSV output quotes cells and protects formula injection", () => {
   assert.equal(csvCell("-2.5"), "\"-2.5\"");
   assert.equal(csvCell("-HYPERLINK()"), "\"\'-HYPERLINK()\"");
   assert.match(toCsv(["task_id", "status"], [{ task_id: "A,1", status: "GOOD" }]), /"A,1","GOOD"/);
+});
+
+test("CSV critical flag parsing rejects ambiguous inputs", () => {
+  assert.equal(parseFlag("YES"), true);
+  assert.equal(parseFlag("no"), false);
+  assert.throws(() => parseFlag("maybe"), /Critical flag/);
 });

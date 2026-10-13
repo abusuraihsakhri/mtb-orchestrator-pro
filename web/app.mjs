@@ -21,6 +21,9 @@ function metric(value, name) {
   if (value === "" || value == null || (typeof value !== "string" && typeof value !== "number")) {
     throw new Error(name + " is required.");
   }
+  if (typeof value === "string" && !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value.trim())) {
+    throw new Error(name + " must be a decimal number.");
+  }
   const n = Number(value);
   if (!Number.isFinite(n) || Math.abs(n) > RULES.maxMetric) {
     throw new Error(name + " must be finite and within ±1,000,000,000.");
@@ -65,6 +68,12 @@ export function evaluate(input) {
     audit_hash: null, audit_status: "UNSIGNED_BROWSER_PREVIEW",
     disclaimer: "Demonstration rules only. Not a clinical assessment or a cryptographically signed audit."
   };
+}
+export function parseFlag(value) {
+  const normal = String(value ?? "").trim().toLowerCase();
+  if (["", "false", "0", "no"].includes(normal)) return false;
+  if (["true", "1", "yes"].includes(normal)) return true;
+  throw new Error("Critical flag must be true/false, 1/0, or yes/no.");
 }
 export function parseCsv(text) {
   if (typeof text !== "string") throw new Error("CSV input must be text.");
@@ -163,7 +172,7 @@ if (typeof document !== "undefined") {
           const dossier = evaluate({
             ...row, secondary_metric: row.secondary_metric || 0,
             status_descriptor: row.status_descriptor || "NOMINAL",
-            is_critical_flag: ["true", "1", "yes"].includes(String(row.is_critical_flag || "").toLowerCase())
+            is_critical_flag: parseFlag(row.is_critical_flag)
           });
           rows.push({ ...row, overall_urgency: dossier.overall_urgency,
             integrity_status: dossier.integrity_status, total_alerts: dossier.total_alerts });

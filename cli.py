@@ -24,6 +24,15 @@ def _csv_safe_cell(value):
     return "'" + value if dangerous else value
 
 
+def _parse_csv_flag(value):
+    normal = str(value or "").strip().lower()
+    if normal in ("true", "1", "yes"):
+        return True
+    if normal in ("", "false", "0", "no"):
+        return False
+    raise ValueError("Invalid critical flag: expected true/false, 1/0, or yes/no")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="mtb-orchestrator-pro", description="Mtb Orchestrator Pro")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -127,7 +136,7 @@ def main(argv=None):
                     primary_metric=float(r["primary_metric"]),
                     secondary_metric=float(r.get("secondary_metric") or 0.0),
                     status_descriptor=r.get("status_descriptor", "NOMINAL"),
-                    is_critical_flag=str(r.get("is_critical_flag", "")).lower() in ("true", "1", "yes"),
+                    is_critical_flag=_parse_csv_flag(r.get("is_critical_flag")),
                 )
                 dossier = supervisor.process_task(payload)
                 row_dict = dict(r)

@@ -65,3 +65,16 @@ def test_cli_csv_export_escapes_formula_cells_but_keeps_negatives(tmp_path):
         row = next(csv.DictReader(stream))
     assert row["task_id"] == "'=1+1"
     assert row["primary_metric"] == "-2.5"
+
+
+def test_invalid_csv_critical_flag_is_rejected(tmp_path, capsys):
+    source = tmp_path / "invalid-flag.csv"
+    target = tmp_path / "out.csv"
+    source.write_text(
+        "task_id,target_identifier,primary_metric,is_critical_flag\n"
+        "T1,SPEC-01,10,maybe\n", encoding="utf-8"
+    )
+    assert main(["batch", "-i", str(source), "-o", str(target)]) == 0
+    assert "1 skipped" in capsys.readouterr().out
+    with target.open(newline="", encoding="utf-8") as stream:
+        assert list(csv.DictReader(stream)) == []
