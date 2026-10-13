@@ -56,7 +56,7 @@ def main(argv=None):
         dossier = supervisor.process_task(payload)
         print("=" * 80)
         print(f"  MTB ORCHESTRATOR PRO")
-        print(f"  Domain: Antimicrobial Stewardship & Microbiology | Standard: CLSI M100 / EUCAST / CDC NHSN Guidelines")
+        print(f"  Mode: Demonstration thresholds; not validated clinical guidelines")
         print(f"  Dossier ID: {dossier.dossier_id} | Urgency: [{dossier.overall_urgency.value}]")
         print("=" * 80)
         for a in dossier.alerts:
@@ -75,9 +75,12 @@ def main(argv=None):
 
     if args.command == "verify-audit":
         trail = AuditLogger.get_trail()
+        if not trail:
+            print("No audit blocks in this process. The audit trail is in-memory and is not shared across CLI invocations.")
+            return 1
         valid = AuditLogger.verify_integrity()
         print(f"Audit Trail Blocks: {len(trail)} | Cryptographic Integrity Verified: {valid}")
-        return 0
+        return 0 if valid else 1
 
     if args.command == "batch":
         import os
@@ -110,7 +113,7 @@ def main(argv=None):
                     task_id=r.get("task_id", "TASK-01"),
                     target_identifier=r.get("target_identifier", "TARGET-01"),
                     primary_metric=float(r["primary_metric"]),
-                    secondary_metric=float(r.get("secondary_metric", 5.0)),
+                    secondary_metric=float(r.get("secondary_metric") or 0.0),
                     status_descriptor=r.get("status_descriptor", "NOMINAL"),
                     is_critical_flag=str(r.get("is_critical_flag", "")).lower() in ("true", "1", "yes"),
                 )
