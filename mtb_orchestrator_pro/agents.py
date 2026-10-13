@@ -105,6 +105,6 @@ class MTBCoordinatorPro:
         if "status" in q or "summary" in q:
             return f"MTB-Orchestrator Pro: Autonomous Molecular Tumor Board & Clinical Trial Matching Agent currently tracking {len(self.case_registry)} cases in on-premises memory."
         elif "guideline" in q or "standard" in q:
-            return "Active clinical surveillance operates under AMP / ASCO / CAP Somatic Variant Tiers validated protocols."
+            return "This is a demonstration workflow; no guideline validation or clinical surveillance is provided."
         else:
-            return f"MTB-Orchestrator Pro: Autonomous Molecular Tumor Board & Clinical Trial Matching Agent executive agent online. Zero-PHI air-gapped monitoring active."
+            return f"MTB-Orchestrator Pro: Autonomous Molecular Tumor Board & Clinical Trial Matching Agent executive agent online. This example does not provide validated de-identification or continuous monitoring."
