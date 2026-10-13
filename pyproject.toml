@@ -1,27 +1,34 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mtb-orchestrator-pro"
-version = "2.0.0"
-description = "MTB-Orchestrator Pro: Autonomous Molecular Tumor Board & Clinical Trial Matching Engine"
+version = "2.0.1"
+description = "Rule-based multi-worker task evaluation, CLI, and optional REST API"
 readme = "README.md"
-authors = [{ name = "Dr. Abu Suraih Sakhri", email = "abusuraih@example.com" }]
+authors = [{ name = "Dr. Abu Suraih Sakhri" }]
 license = { text = "MIT" }
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Topic :: Scientific/Engineering :: Medical Science Apps.",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering",
 ]
-requires-python = ">=3.9"
-dependencies = []
+dependencies = ["pydantic>=2.6,<3"]
+
+[project.optional-dependencies]
+server = ["fastapi>=0.110,<1", "uvicorn>=0.27,<1"]
+test = ["pytest>=8,<10", "httpx>=0.27,<1"]
 
 [project.scripts]
-mtb-orchestrator-pro = "mtb_orchestrator_pro.cli:main"
+mtb-orchestrator-pro = "cli:main"
+mtb-orchestrator-oncology = "mtb_orchestrator_pro.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/abusuraihsakhri/mtb-orchestrator-pro"
-Repository = "https://github.com/abusuraihsakhri/mtb-orchestrator-pro.git"
+Repository = "https://github.com/abusuraihsakhri/mtb-orchestrator-pro"
+
+[tool.setuptools]
+packages = ["agents", "mtb_orchestrator_pro"]
+py-modules = ["cli", "enrichment", "simulator", "mtb_orchestrator_pro_app"]

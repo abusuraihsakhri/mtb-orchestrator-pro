@@ -25,6 +25,7 @@ class SystemSupervisor:
         PHIGuard.assert_no_phi(payload.task_id)
         PHIGuard.assert_no_phi(payload.target_identifier)
         PHIGuard.assert_no_phi(payload.status_descriptor)
+        PHIGuard.assert_no_phi(str(payload.attributes))
 
         # Multi-worker evaluations
         all_alerts: List[AgentAlert] = []
@@ -75,5 +76,5 @@ class SystemSupervisor:
 
     def query_supervisory_chat(self, query: str) -> str:
         PHIGuard.assert_no_phi(query)
-        prompt = f"Supervisor inquiry for Mtb Orchestrator Pro under CLSI M100 / EUCAST / CDC NHSN Guidelines: {query}"
+        prompt = f"Supervisor inquiry for Mtb Orchestrator Pro in demonstration mode: {query}"
         return self.llm.invoke(prompt)

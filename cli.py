@@ -4,12 +4,33 @@ Command Line Interface for Mtb Orchestrator Pro.
 import argparse
 import csv
 import json
+import re
 import sys
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
-from agents.base import AuditLogger
+from agents.base import AuditLogger, SecurityException
 
 supervisor = SystemSupervisor(model_provider="mock")
+
+
+def _csv_safe_cell(value):
+    """Prevent spreadsheet formula evaluation without modifying negative numbers."""
+    if not isinstance(value, str):
+        return value
+    stripped = value.lstrip()
+    dangerous = stripped.startswith(("=", "+", "@"))
+    if stripped.startswith("-") and not re.fullmatch(r"-\d+(?:\.\d+)?(?:[eE][+-]?\d+)?", stripped):
+        dangerous = True
+    return "'" + value if dangerous else value
+
+
+def _parse_csv_flag(value):
+    normal = str(value or "").strip().lower()
+    if normal in ("true", "1", "yes"):
+        return True
+    if normal in ("", "false", "0", "no"):
+        return False
+    raise ValueError("Invalid critical flag: expected true/false, 1/0, or yes/no")
 
 
 def main(argv=None):
@@ -56,7 +77,7 @@ def main(argv=None):
         dossier = supervisor.process_task(payload)
         print("=" * 80)
         print(f"  MTB ORCHESTRATOR PRO")
-        print(f"  Domain: Antimicrobial Stewardship & Microbiology | Standard: CLSI M100 / EUCAST / CDC NHSN Guidelines")
+        print(f"  Mode: Demonstration thresholds; not validated clinical guidelines")
         print(f"  Dossier ID: {dossier.dossier_id} | Urgency: [{dossier.overall_urgency.value}]")
         print("=" * 80)
         for a in dossier.alerts:
@@ -75,9 +96,12 @@ def main(argv=None):
 
     if args.command == "verify-audit":
         trail = AuditLogger.get_trail()
+        if not trail:
+            print("No audit blocks in this process. The audit trail is in-memory and is not shared across CLI invocations.")
+            return 1
         valid = AuditLogger.verify_integrity()
         print(f"Audit Trail Blocks: {len(trail)} | Cryptographic Integrity Verified: {valid}")
-        return 0
+        return 0 if valid else 1
 
     if args.command == "batch":
         import os
@@ -87,25 +111,32 @@ def main(argv=None):
 
         try:
             with open(args.input, mode="r", encoding="utf-8-sig") as f:
-                reader = csv.DictReader(f)
+                reader = csv.DictReader(f, strict=True)
                 fieldnames = list(reader.fieldnames or [])
                 rows = list(reader)
-        except (csv.Error, UnicodeDecodeError) as e:
+        except (csv.Error, UnicodeDecodeError, OSError) as e:
             print(f"Error: Failed to parse CSV file: {e}", file=sys.stderr)
             return 1
 
-        out_fields = fieldnames + ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]
+        required = {"task_id", "target_identifier", "primary_metric"}
+        if len(set(fieldnames)) != len(fieldnames) or not required.issubset(fieldnames):
+            print("Error: CSV headers must be unique and include task_id, target_identifier, primary_metric.", file=sys.stderr)
+            return 1
+
+        out_fields = list(dict.fromkeys(fieldnames + ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]))
         out_rows = []
         errors = 0
         for r in rows:
             try:
+                if None in r:
+                    raise ValueError("CSV row has more cells than headers")
                 payload = SystemTaskPayload(
                     task_id=r.get("task_id", "TASK-01"),
                     target_identifier=r.get("target_identifier", "TARGET-01"),
-                    primary_metric=float(r.get("primary_metric", 15.0)),
-                    secondary_metric=float(r.get("secondary_metric", 5.0)),
+                    primary_metric=float(r["primary_metric"]),
+                    secondary_metric=float(r.get("secondary_metric") or 0.0),
                     status_descriptor=r.get("status_descriptor", "NOMINAL"),
-                    is_critical_flag=str(r.get("is_critical_flag", "")).lower() in ("true", "1", "yes"),
+                    is_critical_flag=_parse_csv_flag(r.get("is_critical_flag")),
                 )
                 dossier = supervisor.process_task(payload)
                 row_dict = dict(r)
@@ -114,20 +145,24 @@ def main(argv=None):
                 row_dict["total_alerts"] = dossier.total_alerts
                 row_dict["audit_hash"] = dossier.audit_hash
                 out_rows.append(row_dict)
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError, SecurityException) as e:
                 errors += 1
                 print(f"Warning: Skipping row due to invalid data: {e}", file=sys.stderr)
 
-        # Prevent path traversal in output filename
+        # Check that the requested output directory exists.
         output_dir = os.path.dirname(os.path.abspath(args.output))
         if not os.path.isdir(output_dir):
             print(f"Error: Output directory does not exist: {output_dir}", file=sys.stderr)
             return 1
 
-        with open(args.output, mode="w", encoding="utf-8", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=out_fields)
-            writer.writeheader()
-            writer.writerows(out_rows)
+        try:
+            with open(args.output, mode="w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=out_fields)
+                writer.writeheader()
+                writer.writerows({key: _csv_safe_cell(value) for key, value in row.items()} for row in out_rows)
+        except (OSError, csv.Error) as e:
+            print(f"Error: Failed to write CSV: {e}", file=sys.stderr)
+            return 1
         print(f"Processed {len(out_rows)} records -> {args.output} ({errors} skipped)")
         return 0
 

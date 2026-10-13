@@ -1,7 +1,7 @@
 """
 Specialized Domain Worker Agents for Mtb Orchestrator Pro.
 Domain: Antimicrobial Stewardship & Microbiology
-Standard: CLSI M100 / EUCAST / CDC NHSN Guidelines
+These thresholds are examples, not derived from clinical guidelines.
 """
 import uuid
 from typing import Dict, Any, List, Optional
@@ -20,8 +20,8 @@ class InvariantQCWorker:
                 origin_worker="InvariantQCWorker",
                 urgency=UrgencyLevel.ELEVATED,
                 summary="Primary Metric Threshold Exceeded",
-                technical_details=f"Primary measurement ({payload.primary_metric:.2f}) exceeds upper reference limit (25.00) under CLSI M100 / EUCAST / CDC NHSN Guidelines.",
-                actionable_remediation="Initiate recalibration workflow and review secondary parameters.",
+                technical_details=f"Primary measurement ({payload.primary_metric:.2f}) exceeds upper reference limit (25.00) under the demonstration rule set.",
+                actionable_remediation="Review the input measurement and secondary parameters.",
             ))
         return alerts
 
@@ -39,7 +39,7 @@ class SafetyEscalationWorker:
                 urgency=UrgencyLevel.CRITICAL_STAT if payload.is_critical_flag else UrgencyLevel.ELEVATED,
                 summary="Critical Safety Interlock Triggered",
                 technical_details=f"CriticalFlag={payload.is_critical_flag} with secondary index {payload.secondary_metric:.2f}.",
-                actionable_remediation="Execute immediate closed-loop escalation and notify attending supervisor.",
+                actionable_remediation="Review this flagged case through the appropriate human escalation process.",
             ))
         return alerts
 
@@ -57,7 +57,7 @@ class ProtocolConformanceWorker:
                 origin_worker="ProtocolConformanceWorker",
                 urgency=UrgencyLevel.ELEVATED,
                 summary="Protocol Conformance Discordance Detected",
-                technical_details=f"Descriptor '{payload.status_descriptor}' indicates discordance with CLSI M100 / EUCAST / CDC NHSN Guidelines standards.",
-                actionable_remediation="Re-evaluate input specimen or rerun secondary confirmation assay.",
+                technical_details=f"Descriptor '{payload.status_descriptor}' matches a demonstration anomaly keyword.",
+                actionable_remediation="Verify the descriptor and follow the applicable local process.",
             ))
         return alerts
