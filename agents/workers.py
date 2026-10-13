@@ -1,7 +1,7 @@
 """
 Specialized Domain Worker Agents for Mtb Orchestrator Pro.
 Domain: Antimicrobial Stewardship & Microbiology
-Standard: CLSI M100 / EUCAST / CDC NHSN Guidelines
+These thresholds are examples, not derived from clinical guidelines.
 """
 import uuid
 from typing import Dict, Any, List, Optional
