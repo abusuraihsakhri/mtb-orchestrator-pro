@@ -94,15 +94,22 @@ def main(argv=None):
             print(f"Error: Failed to parse CSV file: {e}", file=sys.stderr)
             return 1
 
-        out_fields = fieldnames + ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]
+        required = {"task_id", "target_identifier", "primary_metric"}
+        if len(set(fieldnames)) != len(fieldnames) or not required.issubset(fieldnames):
+            print("Error: CSV headers must be unique and include task_id, target_identifier, primary_metric.", file=sys.stderr)
+            return 1
+
+        out_fields = list(dict.fromkeys(fieldnames + ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]))
         out_rows = []
         errors = 0
         for r in rows:
             try:
+                if None in r:
+                    raise ValueError("CSV row has more cells than headers")
                 payload = SystemTaskPayload(
                     task_id=r.get("task_id", "TASK-01"),
                     target_identifier=r.get("target_identifier", "TARGET-01"),
-                    primary_metric=float(r.get("primary_metric", 15.0)),
+                    primary_metric=float(r["primary_metric"]),
                     secondary_metric=float(r.get("secondary_metric", 5.0)),
                     status_descriptor=r.get("status_descriptor", "NOMINAL"),
                     is_critical_flag=str(r.get("is_critical_flag", "")).lower() in ("true", "1", "yes"),
@@ -118,16 +125,20 @@ def main(argv=None):
                 errors += 1
                 print(f"Warning: Skipping row due to invalid data: {e}", file=sys.stderr)
 
-        # Prevent path traversal in output filename
+        # Check that the requested output directory exists.
         output_dir = os.path.dirname(os.path.abspath(args.output))
         if not os.path.isdir(output_dir):
             print(f"Error: Output directory does not exist: {output_dir}", file=sys.stderr)
             return 1
 
-        with open(args.output, mode="w", encoding="utf-8", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=out_fields)
-            writer.writeheader()
-            writer.writerows(out_rows)
+        try:
+            with open(args.output, mode="w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=out_fields)
+                writer.writeheader()
+                writer.writerows(out_rows)
+        except (OSError, csv.Error) as e:
+            print(f"Error: Failed to write CSV: {e}", file=sys.stderr)
+            return 1
         print(f"Processed {len(out_rows)} records -> {args.output} ({errors} skipped)")
         return 0
 
